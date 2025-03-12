@@ -1,2 +1,5 @@
 # bitburner
-shared repo for bitburner scripts
+Shared repo for bitburner scripts
+
+# Credits
+* Jack Chance
