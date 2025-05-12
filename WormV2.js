@@ -49,18 +49,20 @@ export async function main(ns) {
                 ns.print("looking at server : " + servers[x].connectedServers[y] + " in loop");
                 if(await compareArray(ns, serverNames, servers[x].connectedServers[y]) == false){
                     var currentServerInformationFileName = servers[x].connectedServers[y] + serverInformationFileName;
-                    
+
                     var serverInfo = await canImportData(servers[x].connectedServers[y], currentServerInformationFileName);
 
                     await transferScripts(servers[x].connectedServers[y]);
 
-                    ns.print("Hack Server Info to send server Name : " + servers[servers.length-1].serverName);
-                    ns.print("Hack Server Info to send server Info : " + servers[servers.length-1].serverInfo);
+                    //ns.print("Hack Server Info to send server Name : " + servers[servers.length-1].serverName);
+                    //ns.print("Hack Server Info to send server Info : " + servers[servers.length-1].serverInfo);
                     await hackServer(servers[x].connectedServers[y], serverInfo);
 
                     if(ns.hasRootAccess(servers[x].connectedServers[y])){
                         var connectedServers = await ns.scan(servers[x].connectedServers[y]);
                         await addServersToObject(servers[x].connectedServers[y], serverInfo, connectedServers);
+                        await startAutoHackServer(servers[x].connectedServers[y], serverInfo);
+
                     }else{
                         ns.print("Failed to hack : " + servers[x].connectedServers[y]);
                     }
@@ -84,7 +86,7 @@ export async function main(ns) {
     }
 
     async function transferScripts(server){
-        var scripts = ["HackServer.js", "getServerInfo.js"];
+        var scripts = ["HackServer.js", "getServerInfo.js", "AutoRunDeploy.js"];
         await ns.scp(scripts, server, "home");
     }
 
@@ -157,5 +159,29 @@ export async function main(ns) {
 
     //-------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
+    /**
+     * Part to start running autohack script 
+     * -------------------------------------------------------------------------------------------------------------------------------------------------------
+     */
+
+    async function startAutoHackServer(server, serverStats){
+        var ramCost = 2.2;
+        var serverRam = serverStats[4];
+        var scriptsToRun = Math.floor(serverRam / ramCost);
+        var startargs = await arrayToString(ns, serverStats);
+        ns.print("");
+        ns.print("");
+        ns.print("running autoHack script on : " + server);
+        ns.print("Args Passing : " + serverStats);
+        ns.print("");
+        ns.print("");
+        if(scriptsToRun > 0 ){
+            ns.exec("AutoRunDeploy.js", server, scriptsToRun, startargs);
+        }
+        await ns.sleep(100);
+    }
+
+    //-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 }
