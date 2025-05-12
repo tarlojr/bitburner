@@ -11,7 +11,7 @@ export async function main(ns) {
    * cServers = Text file that contains all the connected servers to this one
    * sInfo = Text file that contains all the server information for the server we are currently on
    */
-  var cServers =  "_ConnectedServers.txt";
+  //var cServers =  "_ConnectedServers.txt";
   var sInfo =  "_ServerInfo.txt";
 
   /**
@@ -19,15 +19,15 @@ export async function main(ns) {
    */
   var currentServerInformation = getServerInformation(ns, currentServerName);
   await sendDataToFile(ns, currentServerName, currentServerName + sInfo, currentServerInformation);
-  await sendDataToFile(ns, currentServerName, currentServerName + cServers, connectedHosts);
+  //await sendDataToFile(ns, currentServerName, currentServerName + cServers, connectedHosts);
 
   /**
    * Loop through all connected servers and get the information about them
    */
-  for(var s in connectedHosts){
-    var x = getServerInformation(ns, connectedHosts[s]);
-    await sendDataToFile(ns, currentServerName, connectedHosts[s]+ sInfo, x);
-  }
+  // for(var s in connectedHosts){
+  //   var x = getServerInformation(ns, connectedHosts[s]);
+  //   await sendDataToFile(ns, currentServerName, connectedHosts[s]+ sInfo, x);
+  // }
 }
 
 
@@ -83,5 +83,5 @@ async function sendDataToFile(ns, Servername, FileName, dataToWrite,){
    */
   await writeData(ns, FileName, dataToWrite);
 
-  //await ns.scp(FileName, "home", Servername);
+  await ns.scp(FileName, "home", Servername);
 }
