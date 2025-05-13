@@ -4,14 +4,16 @@
  * @returns data from file imported
  */
 export async function importData(ns, server, fileName) {
+    var importDataDebug = false;
     var fileContents = [];
     //ns.print("Server : " + server + " File name : " + fileName);
     if (ns.fileExists(fileName, server)) {
-        ns.print("Found file : " + fileName);
+        if(importDataDebug == true){ns.print("Found file : " + fileName);}
         fileContents = ns.read(fileName).split(",");
-        ns.print("Read Data is : " + arrayToString(fileContents));
+        if(importDataDebug == true){ns.print("Read Data is : " + arrayToString(fileContents));}
     } else {
-        ns.print("Failed to find file : " + fileName);
+        ns.print("\n function importData \n")
+        ns.print("Failed to find file : " + fileName + "\n");
         fileContents = null;
     }
     return fileContents;
@@ -35,7 +37,7 @@ export async function compareArray(ns, array, toCompare){
     for(var x in array){
         //ns.print("looking at in compare array : " + array[x]);
         if(array[x] === toCompare){
-            ns.print(array[x] + " is equal to " + toCompare);
+            //ns.print(array[x] + " is equal to " + toCompare);
             isMatch = true;
         }
     }

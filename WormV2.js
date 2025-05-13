@@ -24,93 +24,95 @@ export async function main(ns) {
     }
 
     /**
-     * 
+     * Some Base Vars for the script
      */
+    var mainDebug = false;
     var servers = [];
-    //var connectedServersFileName = "_ConnectedServers.txt";
     var serverInformationFileName = "_ServerInfo.txt";
+    var scriptsToCopy = ["HackServer.js", "GetServerInfoV2.js", "AutoRunDeploy.js"];
 
     /**
      * Main
      */
+
+    //add host server to the ServerInformation object before the main loop runs.
     var hostServerInformationFileName = currentServerName + serverInformationFileName;
     var hostserverInfo = await canImportData(currentServerName, hostServerInformationFileName);
     var hostconnectedServers = await ns.scan(currentServerName);
     await addServersToObject(currentServerName, hostserverInfo, hostconnectedServers);
-    ns.print(servers[0].serverName);
-    ns.print(servers[0].serverInfo);
-    ns.print(servers[0].connectedServers);
 
     while(true){
         for(var x in servers){
             for(var y in servers[x].connectedServers){
+                //Grab all the server Names and add to an array
                 var serverNames = servers.map(server => server.serverName);
-                //ns.print("ServerNames in loop : " + serverNames);
-                ns.print("looking at server : " + servers[x].connectedServers[y] + " in loop");
-                if(await compareArray(ns, serverNames, servers[x].connectedServers[y]) == false){
-                    var currentServerInformationFileName = servers[x].connectedServers[y] + serverInformationFileName;
+                //var for the current server in the loop
+                var currentServerInLoop = servers[x].connectedServers[y];
+                //check if the current server name is in the ServerInformation object
+                if(await compareArray(ns, serverNames, currentServerInLoop) == false){
+                    //The filename for the information on the current server
+                    var currentServerInformationFileName = currentServerInLoop + serverInformationFileName;
+                    //importing all the information on the current server
+                    var serverInfo = await canImportData(currentServerInLoop, currentServerInformationFileName);
+                    //get all the connected servers to the current server
+                    var connectedServers = await ns.scan(currentServerInLoop);
 
-                    var serverInfo = await canImportData(servers[x].connectedServers[y], currentServerInformationFileName);
+                    //copy all javascript files needed from the home server to the target one
+                    await secureCopyFunction(scriptsToCopy, currentServerInLoop, "home");
+                    //try to hack the current server
+                    if(serverInfo != null){
+                        await hackServer(currentServerInLoop, serverInfo);
 
-                    await transferScripts(servers[x].connectedServers[y]);
+                        //check to see if hack was sucessful
+                        if(ns.hasRootAccess(currentServerInLoop)){
+                            //if hack was sucessful add the server to the ServerInformation object
+                            await addServersToObject(currentServerInLoop, serverInfo, connectedServers);
+                            //start the AutoRunDeploy Script to make money and get hacking experence
+                            await startAutoHackServer(currentServerInLoop, serverInfo);
 
-                    //ns.print("Hack Server Info to send server Name : " + servers[servers.length-1].serverName);
-                    //ns.print("Hack Server Info to send server Info : " + servers[servers.length-1].serverInfo);
-                    await hackServer(servers[x].connectedServers[y], serverInfo);
-
-                    if(ns.hasRootAccess(servers[x].connectedServers[y])){
-                        var connectedServers = await ns.scan(servers[x].connectedServers[y]);
-                        await addServersToObject(servers[x].connectedServers[y], serverInfo, connectedServers);
-                        await startAutoHackServer(servers[x].connectedServers[y], serverInfo);
-
+                        }else{
+                            //print out server information if the hack filed
+                            ns.print("Failed to hack : " + currentServerInLoop);
+                        }
                     }else{
-                        ns.print("Failed to hack : " + servers[x].connectedServers[y]);
-                    }
-                    //await hackServer(servers[servers.length-1].serverName, servers[servers.length-1].serverInfo);
-                    
+                        ns.print("\n Main Loop \n");
+                        ns.print("Failed to bring in serverInfo for :" + currentServerInLoop);
+                    }                 
                 }
             }
         }
-        var testprint = servers.map(server => server.serverName);
-        ns.print("All servers : " + testprint);
-        ns.print("---------------------------------------------------------");
-        for(var x in servers){
-            // for(var y in servers[x].connectedServers){
-                
-            // }
-            ns.print("server : " + servers[x].serverName);
-            ns.print("Connected Servers : " + servers[x].connectedServers);
-        }
-        ns.print("---------------------------------------------------------");
         await ns.sleep(100);
     }
 
-    async function transferScripts(server){
-        var scripts = ["HackServer.js", "getServerInfo.js", "AutoRunDeploy.js"];
-        await ns.scp(scripts, server, "home");
-    }
-
-
-
     /**
      * part about getting server informaion
-     * 
      * -------------------------------------------------------------------------------------------------------------------------------------------------------
      */
+
+    /**
+     * 
+     * @param {Target Server} Server 
+     */
     async function getServerInfo(Server){
-        let pid = ns.exec("getServerInfo.js", "home", 1, Server);
+        let pid = ns.exec("GetServerInfoV2.js", "home", 1, Server);
         while (ns.isRunning(pid)) {
             await ns.sleep(100);
         }
     }
 
+    /**
+     * 
+     * @param {Target Server} server 
+     * @param {Name Of file to import} fileName 
+     * @returns 
+     */
     async function canImportData(server, fileName){
         var data = await importData(ns, "home", fileName);
         if(data != null){
             return data;
         } else{
-            ns.print("Failed to import data for : " + server);
             await getServerInfo(server);
+            await ns.sleep(100);
             var data = await importData(ns, server, fileName);
             if(data != null){
                 return data;
@@ -121,14 +123,26 @@ export async function main(ns) {
         }
     }
 
+    /**
+     * 
+     * @param {Array or String of File Names to copy} scripts 
+     * @param {Target Server} serverToCopyTo 
+     * @param {Host Server / Server Saved on} serverToCopyFrom 
+     */
+    async function secureCopyFunction(scripts, serverToCopyTo, serverToCopyFrom){
+        await ns.scp(scripts, serverToCopyTo, serverToCopyFrom);
+    }
+
     //-------------------------------------------------------------------------------------------------------------------------------------------------------
 
     /**
      * 
+     * @param {Name of current Server} ServerName 
+     * @param {Array of Server Information ex. ports Required} serverInfo 
+     * @param {Array of all servers connected to the current one} connectedServers 
      */
-
-    async function addServersToObject(currentServerName1, serverInfo, connectedServers){
-        const server = new ServerInformation(currentServerName1, serverInfo, connectedServers)
+    async function addServersToObject(ServerName, serverInfo, connectedServers){
+        const server = new ServerInformation(ServerName, serverInfo, connectedServers)
         servers.push(server);
     }
 
@@ -143,9 +157,13 @@ export async function main(ns) {
      * 
      * -------------------------------------------------------------------------------------------------------------------------------------------------------
      */
-    async function hackServer(server, serverinfo){
-        var hackServerArgs = await arrayToString(ns, serverinfo);
-        ns.print("Hack Server Args : " + hackServerArgs);
+    /**
+     * 
+     * @param {Target Server} server 
+     * @param {Information about the server} serverInfo 
+     */
+    async function hackServer(server, serverInfo){
+        var hackServerArgs = await arrayToString(ns, serverInfo);
 
         if(ns.hasRootAccess(server) == false){
             let pid = ns.exec("HackServer.js", "home", 1, hackServerArgs);
@@ -165,19 +183,30 @@ export async function main(ns) {
      * -------------------------------------------------------------------------------------------------------------------------------------------------------
      */
 
-    async function startAutoHackServer(server, serverStats){
-        var ramCost = 2.2;
-        var serverRam = serverStats[4];
+    /**
+     * 
+     * @param {Target Server} server 
+     * @param {Information on the server} serverInfo 
+     */
+    async function startAutoHackServer(server, serverInfo){
+        var startAutoHackServerDebug = false;
+        var scriptToRun = "AutoRunDeploy.js";
+        var ramCost = ns.getScriptRam(scriptToRun, server);
+        var serverRam = serverInfo[4];
         var scriptsToRun = Math.floor(serverRam / ramCost);
-        var startargs = await arrayToString(ns, serverStats);
-        ns.print("");
-        ns.print("");
-        ns.print("running autoHack script on : " + server);
-        ns.print("Args Passing : " + serverStats);
-        ns.print("");
-        ns.print("");
+        var startArgs = await arrayToString(ns, serverInfo);
+
+        //Debug
+        if(startAutoHackServerDebug == true){
+            ns.print("\n startAutoHackServer Debug \n");
+            ns.print("Passed Properties\n server : " + server + "\n server Info : " + serverInfo + "\n");
+            ns.print("StartArgs : " + startArgs);
+
+            await ns.sleep(1000);
+        }
+
         if(scriptsToRun > 0 ){
-            ns.exec("AutoRunDeploy.js", server, scriptsToRun, startargs);
+            ns.exec(scriptToRun, server, scriptsToRun, startArgs);
         }
         await ns.sleep(100);
     }

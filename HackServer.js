@@ -18,14 +18,6 @@ export async function main(ns) {
 		"SQLInject.exe": ns.sqlinject
     };
 
-    // var x = true;
-    // while(x){
-    //     hack(serverData.serverName);
-    //     if(ns.hasRootAccess(serverData.serverName) == true){
-    //         x = false;
-    //     }
-    //     await ns.sleep(100);
-    // }
     await hack(serverData.serverName);
 
     function getNumCracks() {
@@ -48,9 +40,6 @@ export async function main(ns) {
         var access = serverData.rootAccess;
         var hackingLevelRequired = Number(serverData.requiredHackingLevel);
         var portsRequired = Number(serverData.numPortsRequired);
-        // ns.print("access : " + access);
-        // ns.print("hacking Level : " + hackingLevelRequired);
-        // ns.print("Ports Required : " + portsRequired);
 
         if(access === "false"){
             if(hackingLevelRequired <= ns.getHackingLevel()){
@@ -63,7 +52,6 @@ export async function main(ns) {
                 canHack = false;
             }
         }else{
-            ns.print("access != False : " + access);
             canHack = false;
         }
         return canHack;
